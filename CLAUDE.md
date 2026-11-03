@@ -54,6 +54,11 @@ npm install && npm run dev
 - `GET /api/dashboard/summary` - All filters
 - `GET /api/demand`, `/api/backlog` - No filters
 - `GET /api/spending/*` - Summary, monthly, categories, transactions
+- `GET /api/reports/quarterly`, `/api/reports/monthly-trends` - No filters
+- `GET /api/tasks`, `POST /api/tasks`, `PATCH /api/tasks/{id}` (toggle pending/completed), `DELETE /api/tasks/{id}` - In-memory tasks
+- `POST /api/purchase-orders` (404 unknown backlog item, 409 duplicate), `GET /api/purchase-orders/{backlog_item_id}` - In-memory purchase orders; `/api/backlog` reports `has_purchase_order`
+
+Write endpoints (tasks, purchase orders) only change in-memory state. It is lost on server restart and never written to `server/data/*.json`.
 
 ## Common Issues
 1. Use unique keys in v-for (not `index`) - use `sku`, `month`, etc.

@@ -1,7 +1,8 @@
 <template>
   <div class="inventory">
     <div class="page-header">
-      <h2>{{ t('inventory.title') }}</h2>
+      <!-- The top bar already shows the page title (h1); only render this heading when it adds different wording. -->
+      <h2 v-if="t('inventory.title') !== t('nav.inventory')">{{ t('inventory.title') }}</h2>
       <p>{{ t('inventory.description') }}</p>
     </div>
 
@@ -60,8 +61,8 @@
                 <td>{{ translateCategory(item.category) }}</td>
                 <td><strong>{{ item.quantity_on_hand }}</strong></td>
                 <td>{{ item.reorder_point }}</td>
-                <td>{{ currencySymbol }}{{ item.unit_cost.toFixed(2) }}</td>
-                <td><strong>{{ currencySymbol }}{{ (item.quantity_on_hand * item.unit_cost).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</strong></td>
+                <td>{{ money(item.unit_cost, 2) }}</td>
+                <td><strong>{{ money((item.quantity_on_hand * item.unit_cost), 2) }}</strong></td>
                 <td>{{ translateWarehouse(item.location) }}</td>
                 <td>
                   <span :class="['badge', getStockStatusClass(item)]">
@@ -88,6 +89,7 @@ import { ref, onMounted, watch, computed } from 'vue'
 import { api } from '../api'
 import { useFilters } from '../composables/useFilters'
 import { useI18n } from '../composables/useI18n'
+import { formatCurrencyWithDecimals } from '../utils/currency'
 import InventoryDetailModal from '../components/InventoryDetailModal.vue'
 
 export default {
@@ -98,9 +100,8 @@ export default {
   setup() {
     const { t, currentCurrency, translateProductName, translateWarehouse } = useI18n()
 
-    const currencySymbol = computed(() => {
-      return currentCurrency.value === 'JPY' ? '¥' : '$'
-    })
+    // Locale-aware currency text (en-US for USD, ja-JP for JPY; JPY amounts are converted).
+    const money = (value, decimals = 0) => formatCurrencyWithDecimals(value, currentCurrency.value, decimals)
 
     const loading = ref(true)
     const error = ref(null)
@@ -216,7 +217,7 @@ export default {
       showItemModal,
       selectedItem,
       showItemDetail,
-      currencySymbol,
+      money,
       translateProductName,
       translateWarehouse
     }

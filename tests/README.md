@@ -8,11 +8,12 @@ Comprehensive test suite for the Factory Inventory Management System backend API
 tests/
 ├── pytest.ini          # Pytest configuration
 ├── backend/            # Backend API tests
-│   ├── conftest.py     # Test fixtures and configuration
-│   ├── test_inventory.py      # Inventory endpoint tests (10 tests)
-│   ├── test_orders.py         # Orders endpoint tests (15 tests)
-│   ├── test_dashboard.py      # Dashboard endpoint tests (13 tests)
-│   └── test_misc_endpoints.py # Demand, backlog, spending tests (13 tests)
+│   ├── conftest.py     # Test fixtures and configuration (incl. in-memory state reset)
+│   ├── test_inventory.py        # Inventory endpoint tests (10 tests)
+│   ├── test_dashboard.py        # Dashboard endpoint tests (13 tests)
+│   ├── test_misc_endpoints.py   # Demand, backlog, spending, root tests (17 tests)
+│   ├── test_tasks.py            # Task endpoint tests (14 tests)
+│   └── test_purchase_orders.py  # Purchase order endpoint tests (19 tests)
 └── README.md           # This file
 ```
 
@@ -50,7 +51,9 @@ uv run pytest --cov=../server --cov-report=html
 
 ## Test Coverage
 
-**Total: 51 tests** covering all API endpoints:
+**Total: 73 tests** covering the inventory, dashboard, demand, backlog, spending, root, task and purchase order endpoints.
+
+Not covered yet: `/api/orders` and `/api/orders/{id}` (only exercised indirectly by the dashboard tests) and `/api/reports/*`.
 
 ### Inventory Endpoints (10 tests)
 - ✓ Get all inventory items
@@ -62,18 +65,6 @@ uv run pytest --cov=../server --cov-report=html
 - ✓ Validate field structure
 - ✓ Validate data types
 
-### Orders Endpoints (15 tests)
-- ✓ Get all orders
-- ✓ Filter by warehouse, category, status
-- ✓ Filter by month and quarter
-- ✓ Multiple filter combinations
-- ✓ Get specific order by ID
-- ✓ Handle non-existent orders (404)
-- ✓ Validate order items structure
-- ✓ Validate status values
-- ✓ Validate date formats
-- ✓ Validate total value calculations
-
 ### Dashboard Endpoints (13 tests)
 - ✓ Get dashboard summary
 - ✓ Validate data types and non-negative values
@@ -84,11 +75,13 @@ uv run pytest --cov=../server --cov-report=html
   - Low stock items calculation
   - Total inventory value calculation
 
-### Miscellaneous Endpoints (13 tests)
-- **Demand Forecasts (3 tests)**
+### Miscellaneous Endpoints (17 tests)
+- **Demand Forecasts (5 tests)**
   - ✓ Get demand forecasts
   - ✓ Validate trend values
   - ✓ Validate non-negative values
+  - ✓ Stable items change less than 2%
+  - ✓ Expected stable items are present
 
 - **Backlog Items (4 tests)**
   - ✓ Get backlog items
@@ -96,9 +89,11 @@ uv run pytest --cov=../server --cov-report=html
   - ✓ Validate quantity logic
   - ✓ Validate days delayed
 
-- **Spending Data (4 tests)**
+- **Spending Data (6 tests)**
   - ✓ Get spending summary
   - ✓ Get monthly spending
+  - ✓ All cost categories present
+  - ✓ Monthly spending varies
   - ✓ Get category spending
   - ✓ Get recent transactions
 
@@ -106,10 +101,28 @@ uv run pytest --cov=../server --cov-report=html
   - ✓ API info endpoint
   - ✓ Validate response structure
 
+### Task Endpoints (14 tests)
+- ✓ List tasks (empty at start, newest first)
+- ✓ Create a task (201, default priority)
+- ✓ Validation errors (422)
+- ✓ Toggle pending/completed
+- ✓ Delete a task
+- ✓ Unknown id returns 404, non-integer id returns 422
+- ✓ In-memory state does not leak between tests
+
+### Purchase Order Endpoints (19 tests)
+- ✓ Create a purchase order (201, `PO-NNNN` ids, notes optional)
+- ✓ Get a purchase order by backlog item id
+- ✓ Unknown backlog item returns 404, missing purchase order returns 404
+- ✓ Duplicate purchase order for a backlog item returns 409
+- ✓ Validation errors (422): quantity, unit cost, supplier, missing fields
+- ✓ `/api/backlog` reports `has_purchase_order: true` after creating one
+- ✓ In-memory state does not leak between tests
+
 ## Test Features
 
 - **FastAPI TestClient**: Uses FastAPI's built-in test client for fast, isolated testing
-- **Fixtures**: Reusable test fixtures in `conftest.py`
+- **Fixtures**: Reusable test fixtures in `conftest.py`, including an autouse fixture that restores the in-memory tasks and purchase orders after each test
 - **Comprehensive Validation**: Tests data structure, types, calculations, and business logic
 - **Filter Testing**: Validates all filter combinations and edge cases
 - **Error Handling**: Tests 404 responses and edge cases

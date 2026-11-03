@@ -1,6 +1,7 @@
 """
 Pytest configuration and fixtures for backend API tests.
 """
+import copy
 import sys
 from pathlib import Path
 
@@ -12,6 +13,7 @@ server_path = Path(__file__).parent.parent.parent / "server"
 sys.path.insert(0, str(server_path))
 
 from main import app
+import mock_data
 
 
 @pytest.fixture
@@ -19,6 +21,23 @@ def client():
     """Create a test client for the FastAPI application."""
     with TestClient(app) as test_client:
         yield test_client
+
+
+@pytest.fixture(autouse=True)
+def restore_in_memory_state():
+    """Snapshot and restore mutable in-memory lists around every test.
+
+    Write endpoints (tasks, purchase orders) mutate module-level lists shared
+    by the whole process; restoring in place (slice assignment) keeps the
+    objects imported by main.py valid and stops state leaking between tests.
+    """
+    saved = {
+        "tasks": copy.deepcopy(mock_data.tasks),
+        "purchase_orders": copy.deepcopy(mock_data.purchase_orders),
+    }
+    yield
+    mock_data.tasks[:] = saved["tasks"]
+    mock_data.purchase_orders[:] = saved["purchase_orders"]
 
 
 @pytest.fixture

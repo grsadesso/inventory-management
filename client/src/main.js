@@ -1,6 +1,7 @@
 import { createApp } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import App from './App.vue'
+import './styles/tokens.css'
 import Dashboard from './views/Dashboard.vue'
 import Inventory from './views/Inventory.vue'
 import Orders from './views/Orders.vue'

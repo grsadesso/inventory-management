@@ -1,6 +1,7 @@
 <template>
   <div class="dashboard">
-    <div class="page-header">
+    <!-- The top bar already shows "Overview" (h1), so the body heading is omitted unless worded differently. -->
+    <div v-if="t('dashboard.title') !== t('nav.overview')" class="page-header">
       <h2>{{ t('dashboard.title') }}</h2>
     </div>
 
@@ -210,7 +211,7 @@
                   </td>
                   <td>
                     <button
-                      v-if="!item.purchase_order_id"
+                      v-if="!item.has_purchase_order"
                       @click.stop="openPOModal(item)"
                       class="po-button create"
                     >
@@ -304,12 +305,14 @@ import { useI18n } from '../composables/useI18n'
 import { formatCurrency } from '../utils/currency'
 import ProductDetailModal from '../components/ProductDetailModal.vue'
 import BacklogDetailModal from '../components/BacklogDetailModal.vue'
+import PurchaseOrderModal from '../components/PurchaseOrderModal.vue'
 
 export default {
   name: 'Dashboard',
   components: {
     ProductDetailModal,
     BacklogDetailModal,
+    PurchaseOrderModal
   },
   setup() {
     const { t, currentCurrency, translateProductName, translateWarehouse } = useI18n()
@@ -663,11 +666,11 @@ export default {
     }
 
     const handlePOCreated = (poData) => {
-      // Update the backlog item with the new PO ID
+      // Mirror the backend flag (/api/backlog only returns has_purchase_order) so the
+      // row flips to "View PO" now and stays consistent after a reload
       const item = allBacklogItems.value.find(b => b.id === poData.backlog_item_id)
       if (item) {
-        item.purchase_order_id = poData.id
-        item.purchase_order = poData
+        item.has_purchase_order = true
       }
       showPOModal.value = false
     }
@@ -754,8 +757,22 @@ export default {
 
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  /* 5 cards: one row when wide, 3+2 on medium widths, so a single card never sits alone.
+     Breakpoints account for the sidebar eating ~250px of the viewport. */
+  grid-template-columns: repeat(5, 1fr);
   gap: 1rem;
+}
+
+@media (max-width: 1279px) {
+  .kpi-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 599px) {
+  .kpi-grid {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  }
 }
 
 .kpi-card {
@@ -812,9 +829,17 @@ export default {
 
 .charts-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  /* minmax(0, 1fr) lets the columns shrink below their content, which stops the page overflowing sideways. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1.25rem;
   margin-bottom: 1.5rem;
+}
+
+/* Same 1279px cut-off as the KPI grid: the sidebar leaves too little room for two chart cards side by side. */
+@media (max-width: 1279px) {
+  .charts-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .chart-card.full-width {

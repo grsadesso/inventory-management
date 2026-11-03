@@ -6,6 +6,13 @@ export default {
     orders: '注文',
     finance: '財務',
     demandForecast: '需要予測',
+    reports: 'レポート',
+    collapseSidebar: 'サイドバーを折りたたむ',
+    expandSidebar: 'サイドバーを展開',
+    collapse: '折りたたむ',
+    openNavigation: 'ナビゲーションを開く',
+    closeNavigation: 'ナビゲーションを閉じる',
+    primaryNavigation: 'メイン',
     companyName: '触媒コンポーネンツ',
     subtitle: '在庫管理システム'
   },
@@ -190,6 +197,7 @@ export default {
 
   // Filters
   filters: {
+    resetAll: 'すべてのフィルターをリセット',
     timePeriod: '期間',
     location: '場所',
     category: 'カテゴリ',

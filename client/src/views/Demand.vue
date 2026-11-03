@@ -1,7 +1,8 @@
 <template>
   <div class="demand">
     <div class="page-header">
-      <h2>{{ t('demand.title') }}</h2>
+      <!-- The top bar already shows the page title (h1); only render this heading when it adds different wording. -->
+      <h2 v-if="t('demand.title') !== t('nav.demandForecast')">{{ t('demand.title') }}</h2>
       <p>{{ t('demand.description') }}</p>
     </div>
 

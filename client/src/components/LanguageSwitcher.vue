@@ -1,7 +1,9 @@
 <template>
-  <div class="language-switcher">
+  <div class="language-switcher" :class="{ collapsed }">
     <button
       class="language-button"
+      :aria-label="collapsed ? localeName : null"
+      :title="collapsed ? localeName : null"
       @click="toggleDropdown"
       @blur="handleBlur"
     >
@@ -11,14 +13,16 @@
         viewBox="0 0 20 20"
         fill="none"
         class="globe-icon"
+        aria-hidden="true"
       >
         <circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.5"/>
         <path d="M3 10H17" stroke="currentColor" stroke-width="1.5"/>
         <path d="M10 3C10 3 7.5 5.5 7.5 10C7.5 14.5 10 17 10 17" stroke="currentColor" stroke-width="1.5"/>
         <path d="M10 3C10 3 12.5 5.5 12.5 10C12.5 14.5 10 17 10 17" stroke="currentColor" stroke-width="1.5"/>
       </svg>
-      <span class="language-label">{{ localeName }}</span>
+      <span v-if="!collapsed" class="language-label">{{ localeName }}</span>
       <svg
+        v-if="!collapsed"
         class="chevron"
         :class="{ 'chevron-open': isDropdownOpen }"
         width="16"
@@ -58,6 +62,11 @@
 import { ref } from 'vue'
 import { useI18n } from '../composables/useI18n'
 
+defineProps({
+  // Icons-only rail mode: show just the globe and open the dropdown beside the rail.
+  collapsed: { type: Boolean, default: false }
+})
+
 const { currentLocale, setLocale, availableLocales, localeName } = useI18n()
 
 const isDropdownOpen = ref(false)
@@ -96,34 +105,42 @@ const selectLanguage = (locale) => {
 .language-button {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.875rem;
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  gap: var(--space-2);
+  width: 100%;
+  height: var(--control-height);
+  padding: 0 var(--space-3);
+  background: transparent;
+  border: 1px solid var(--color-sidebar-border);
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease;
   font-family: inherit;
-  font-size: 0.875rem;
-  color: #334155;
+  font-size: var(--text-sm);
+  color: var(--color-sidebar-text-active);
 }
 
 .language-button:hover {
-  background: #f8fafc;
-  border-color: #cbd5e1;
+  background: var(--color-sidebar-item-hover);
+}
+
+.language-button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .globe-icon {
-  color: #64748b;
+  color: var(--color-sidebar-text);
   flex-shrink: 0;
 }
 
 .language-label {
   font-weight: 500;
+  flex: 1;
+  text-align: left;
 }
 
 .chevron {
-  color: #64748b;
+  color: var(--color-sidebar-text);
   transition: transform 0.2s ease;
   flex-shrink: 0;
 }
@@ -134,15 +151,28 @@ const selectLanguage = (locale) => {
 
 .dropdown-menu {
   position: absolute;
-  top: calc(100% + 0.5rem);
-  right: 0;
+  /* Opens upward: the switcher sits at the bottom of the sidebar. */
+  bottom: calc(100% + var(--space-2));
+  left: 0;
   min-width: 160px;
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
   z-index: 1000;
   overflow: hidden;
+}
+
+/* Rail is only 72px wide, so open to its right, bottom-aligned, instead of upward. */
+.collapsed .language-button {
+  justify-content: center;
+  padding: 0;
+}
+
+.collapsed .dropdown-menu {
+  bottom: 0;
+  /* Footer has --space-3 side padding, so add it to clear the rail edge. */
+  left: calc(100% + var(--space-3) + var(--space-2));
 }
 
 .dropdown-item {
@@ -150,26 +180,26 @@ const selectLanguage = (locale) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
   background: none;
   border: none;
   text-align: left;
   cursor: pointer;
   transition: background 0.15s ease;
   font-family: inherit;
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   font-weight: 500;
-  color: #334155;
+  color: var(--color-text-secondary);
 }
 
 .dropdown-item:hover {
-  background: #f8fafc;
+  background: var(--color-bg);
 }
 
 .dropdown-item.active {
-  background: #eff6ff;
-  color: #2563eb;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
 }
 
 .language-name {
@@ -177,7 +207,7 @@ const selectLanguage = (locale) => {
 }
 
 .check-icon {
-  color: #2563eb;
+  color: var(--color-primary);
   flex-shrink: 0;
 }
 </style>
