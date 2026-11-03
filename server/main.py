@@ -1,8 +1,10 @@
+from datetime import date
+from typing import Literal
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional
-from pydantic import BaseModel
-from mock_data import inventory_items, orders, demand_forecasts, backlog_items, spending_summary, monthly_spending, category_spending, recent_transactions, purchase_orders
+from pydantic import BaseModel, Field
+from mock_data import inventory_items, orders, demand_forecasts, backlog_items, spending_summary, monthly_spending, category_spending, recent_transactions, purchase_orders, tasks
 
 app = FastAPI(title="Factory Inventory Management System")
 
@@ -114,11 +116,28 @@ class PurchaseOrder(BaseModel):
 
 class CreatePurchaseOrderRequest(BaseModel):
     backlog_item_id: str
-    supplier_name: str
-    quantity: int
-    unit_cost: float
+    supplier_name: str = Field(min_length=1)
+    quantity: int = Field(gt=0)
+    unit_cost: float = Field(ge=0)
     expected_delivery_date: str
     notes: Optional[str] = None
+
+class Task(BaseModel):
+    # camelCase dueDate matches what the frontend (TasksModal) reads
+    id: int
+    title: str
+    priority: Literal['high', 'medium', 'low']
+    dueDate: str
+    status: Literal['pending', 'completed']
+
+class CreateTaskRequest(BaseModel):
+    title: str = Field(min_length=1)
+    priority: Literal['high', 'medium', 'low'] = 'medium'
+    dueDate: str
+
+class DeleteTaskResponse(BaseModel):
+    message: str
+    id: int
 
 # API endpoints
 @app.get("/")
@@ -303,6 +322,72 @@ def get_monthly_trends():
     result = list(months.values())
     result.sort(key=lambda x: x['month'])
     return result
+
+# Task endpoints
+# API task ids start at 1000 so they never collide with the frontend's seeded
+# mock tasks (ids 1-4), which the client distinguishes by id lookup.
+TASK_ID_START = 1000
+
+@app.get("/api/tasks", response_model=List[Task])
+def get_tasks():
+    """Get all tasks, newest first"""
+    return list(reversed(tasks))
+
+@app.post("/api/tasks", response_model=Task, status_code=201)
+def create_task(request: CreateTaskRequest):
+    """Create a new pending task"""
+    next_id = max((t["id"] for t in tasks), default=TASK_ID_START - 1) + 1
+    task = {**request.model_dump(), "id": next_id, "status": "pending"}
+    tasks.append(task)
+    return task
+
+@app.patch("/api/tasks/{task_id}", response_model=Task)
+def toggle_task(task_id: int):
+    """Toggle a task between pending and completed"""
+    for task in tasks:
+        if task["id"] == task_id:
+            task["status"] = "completed" if task["status"] == "pending" else "pending"
+            return task
+    raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
+
+@app.delete("/api/tasks/{task_id}", response_model=DeleteTaskResponse)
+def delete_task(task_id: int):
+    """Delete a task"""
+    for index, task in enumerate(tasks):
+        if task["id"] == task_id:
+            tasks.pop(index)
+            return {"message": "Task deleted", "id": task_id}
+    raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
+
+# Purchase order endpoints
+@app.post("/api/purchase-orders", response_model=PurchaseOrder, status_code=201)
+def create_purchase_order(request: CreatePurchaseOrderRequest):
+    """Create a purchase order for a backlog item"""
+    if not any(b["id"] == request.backlog_item_id for b in backlog_items):
+        raise HTTPException(status_code=404, detail=f"Backlog item {request.backlog_item_id} not found")
+    # One PO per backlog item: the UI treats has_purchase_order as a boolean and
+    # GET /api/purchase-orders/{backlog_item_id} returns a single PO.
+    if any(po["backlog_item_id"] == request.backlog_item_id for po in purchase_orders):
+        raise HTTPException(status_code=409, detail=f"Purchase order already exists for backlog item {request.backlog_item_id}")
+    # Derive the next number from existing ids so ids stay unique even if
+    # seed data is added later.
+    numbers = [int(po["id"][3:]) for po in purchase_orders if str(po["id"]).startswith("PO-") and po["id"][3:].isdigit()]
+    po = {
+        **request.model_dump(),
+        "id": f"PO-{max(numbers, default=0) + 1:04d}",
+        "status": "Pending",
+        "created_date": date.today().isoformat(),
+    }
+    purchase_orders.append(po)
+    return po
+
+@app.get("/api/purchase-orders/{backlog_item_id}", response_model=PurchaseOrder)
+def get_purchase_order_by_backlog_item(backlog_item_id: str):
+    """Get the purchase order belonging to a backlog item"""
+    for po in purchase_orders:
+        if po["backlog_item_id"] == backlog_item_id:
+            return po
+    raise HTTPException(status_code=404, detail=f"Purchase order for backlog item {backlog_item_id} not found")
 
 if __name__ == "__main__":
     import uvicorn
