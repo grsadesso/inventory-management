@@ -2,7 +2,9 @@
 
 ## Test Coverage Overview
 
-All backend API tests are passing with **55 tests** covering the entire application functionality.
+All backend API tests are passing with **73 tests** covering the inventory, dashboard, demand, backlog, spending, root, task and purchase order endpoints.
+
+Not covered yet: `/api/orders`, `/api/orders/{id}` (only used indirectly by the dashboard tests) and `/api/reports/*`.
 
 ## Test Suites
 
@@ -30,21 +32,7 @@ All backend API tests are passing with **55 tests** covering the entire applicat
 - ✅ Quantity and cost type validation
 - ✅ Non-negative value validation
 
-### 3. Orders Endpoints (15 tests)
-- ✅ Get all orders
-- ✅ Filter by warehouse, category, status, month
-- ✅ Quarter filtering (Q1-2025)
-- ✅ Multiple filter combinations
-- ✅ Power Supplies category orders
-- ✅ Get specific order by ID
-- ✅ 404 handling for non-existent orders
-- ✅ Order items structure validation
-- ✅ Valid status values (Delivered, Shipped, Processing, Backordered)
-- ✅ Date format validation (ISO format)
-- ✅ Delivered orders have actual_delivery date
-- ✅ **Actual calculation**: Total value = sum(quantity × unit_price)
-
-### 4. Demand Forecast Endpoints (5 tests)
+### 3. Demand Forecast Endpoints (5 tests)
 - ✅ Get demand forecasts
 - ✅ Valid trend values (increasing, stable, decreasing)
 - ✅ Non-negative demand values
@@ -52,13 +40,13 @@ All backend API tests are passing with **55 tests** covering the entire applicat
 - ✅ **NEW**: At least 5 stable demand items exist
 - ✅ **NEW**: New items (Temperature Sensor Module, Logic Controller Board) are present and stable
 
-### 5. Backlog Endpoints (4 tests)
+### 4. Backlog Endpoints (4 tests)
 - ✅ Get backlog items
 - ✅ Valid priority values (high, medium, low)
 - ✅ Non-negative quantities
 - ✅ Non-negative days delayed
 
-### 6. Spending Endpoints (6 tests)
+### 5. Spending Endpoints (6 tests)
 - ✅ Get spending summary
 - ✅ Get monthly spending data
 - ✅ **NEW**: All cost categories present (procurement, operational, labor, overhead)
@@ -66,9 +54,27 @@ All backend API tests are passing with **55 tests** covering the entire applicat
 - ✅ Get category spending
 - ✅ Get recent transactions
 
-### 7. Root Endpoint (2 tests)
+### 6. Root Endpoint (2 tests)
 - ✅ Root endpoint returns API info
 - ✅ Message and version structure
+
+### 7. Task Endpoints (14 tests)
+- ✅ List tasks (empty at start, newest first)
+- ✅ Create a task (201, default priority)
+- ✅ Validation errors (422)
+- ✅ Toggle pending/completed
+- ✅ Delete a task
+- ✅ Unknown id returns 404, non-integer id returns 422
+- ✅ In-memory state does not leak between tests
+
+### 8. Purchase Order Endpoints (19 tests)
+- ✅ Create a purchase order (201, `PO-NNNN` ids, notes optional)
+- ✅ Get a purchase order by backlog item id
+- ✅ Unknown backlog item returns 404, missing purchase order returns 404
+- ✅ Duplicate purchase order for a backlog item returns 409
+- ✅ Validation errors (422): quantity, unit cost, supplier, missing fields
+- ✅ `/api/backlog` reports `has_purchase_order: true` after creating one
+- ✅ In-memory state does not leak between tests
 
 ## Key Testing Principles
 
@@ -101,9 +107,9 @@ python -m pytest backend/ -v
 ```
 
 ## Test Results
-- **Total Tests**: 55
-- **Passed**: 55 ✅
+- **Total Tests**: 73
+- **Passed**: 73 ✅
 - **Failed**: 0
-- **Warnings**: 3 (configuration-related, non-critical)
+- **Warnings**: 1 (Starlette/httpx deprecation in `TestClient`, non-critical)
 
 All tests validate the **actual implementation** without cheating or hardcoding success values!

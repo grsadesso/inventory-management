@@ -138,6 +138,8 @@ def get_item(item_id: str):
 - Load all data from JSON files at startup
 - Data lives in memory during server runtime
 - Changes don't persist (restart reloads from files)
+- Write endpoints (`/api/tasks`, `/api/purchase-orders`) mutate the in-memory lists in `mock_data.py` only; they never write to `server/data/*.json`
+- Tasks start empty (the client seeds its own mock tasks with ids 1-4); API task ids start at 1000 to avoid collisions
 - Keep JSON files well-formatted and validated
 
 **Adding New Data:**
@@ -191,6 +193,10 @@ def test_endpoint(client):
 - Response structure matches model
 - Calculations are accurate
 - Edge cases (empty results, invalid input)
+
+**Tests for write endpoints:**
+- `tests/backend/conftest.py` has an autouse fixture (`restore_in_memory_state`) that snapshots and restores `tasks` and `purchase_orders` after every test. If you add another mutable in-memory list, add it to that fixture so tests do not leak state.
+- Cover the error paths too: 404 (unknown id), 409 (duplicate purchase order), 422 (validation).
 
 ### Performance Considerations
 
