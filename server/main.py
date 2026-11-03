@@ -365,8 +365,8 @@ def create_purchase_order(request: CreatePurchaseOrderRequest):
     """Create a purchase order for a backlog item"""
     if not any(b["id"] == request.backlog_item_id for b in backlog_items):
         raise HTTPException(status_code=404, detail=f"Backlog item {request.backlog_item_id} not found")
-    # One PO per backlog item: the UI treats has_purchase_order as a boolean and
-    # GET /api/purchase-orders/{backlog_item_id} returns a single PO.
+    # One PO per backlog item: /api/backlog exposes only the boolean has_purchase_order
+    # (no PO id), and GET /api/purchase-orders/{backlog_item_id} returns a single PO.
     if any(po["backlog_item_id"] == request.backlog_item_id for po in purchase_orders):
         raise HTTPException(status_code=409, detail=f"Purchase order already exists for backlog item {request.backlog_item_id}")
     # Derive the next number from existing ids so ids stay unique even if
