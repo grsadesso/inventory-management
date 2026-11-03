@@ -21,7 +21,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: read
+      # write is required because the review runs with --comment and posts its findings on the PR;
+      # with read only, the run succeeded but could not post anything
+      pull-requests: write
       issues: read
       id-token: write
 
@@ -39,7 +41,10 @@ jobs:
           plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
           plugins: 'code-review@claude-code-plugins'
           prompt: '/code-review:code-review --comment ${{ github.repository }}/pull/${{ github.event.pull_request.number }}'
-          claude_args: '--allowedTools "mcp__github_inline_comment__create_inline_comment"'
+          # The review needs to read the PR (diff, metadata) and post its summary; with only the
+          # inline-comment tool allowed, those calls were denied and the run produced no output.
+          # Keep this list narrow: only these three gh subcommands, no general shell access.
+          claude_args: '--allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr comment:*)"'
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
 
